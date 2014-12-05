@@ -9,6 +9,10 @@ object Application extends Controller {
     Ok(views.html.index("Your new application is ready."))
   }
 
+  def ping = Action {
+    Ok
+  }
+
   def corsPreflight(all: String) = Action {
     Ok("").withHeaders(
       "Access-Control-Allow-Origin" -> "*",
