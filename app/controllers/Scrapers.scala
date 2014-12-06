@@ -7,6 +7,7 @@ import java.util.Date
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import play.api.libs.json._
+import play.api.libs.ws._
 import play.api.mvc._
 import play.api.Logger
 import play.modules.reactivemongo.MongoController
@@ -53,7 +54,8 @@ object Scrapers extends Controller with MongoController {
   def debugPage(url: String) = Action.async {
     Logger.info("FETCH debug: " + url)
     ProfileScraper.fetchLinkedinUrl(url).map { response =>
-      Ok(response.body)
+      val body = response.body
+      Ok("GET " + url + "\n\nResponse body:\n" + body)
     }
   }
 }

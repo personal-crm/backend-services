@@ -14,8 +14,8 @@ case class LinkedinSearch(
 object LinkedinSearch {
   implicit val linkedinSearchFormat = Json.format[LinkedinSearch]
 
-  def getUrl(firstName: String, lastName: String) = "http://www.linkedin.com/pub/dir/?first=" + firstName + "&last=" + lastName
-  def getUrlForFrance(firstName: String, lastName: String) = "http://www.linkedin.com/pub/dir/" + firstName + "/" + lastName + "/fr-0-France"
+  def getUrl(firstName: String, lastName: String) = "https://www.linkedin.com/pub/dir/?first=" + firstName + "&last=" + lastName
+  def getUrlForFrance(firstName: String, lastName: String) = "https://fr.linkedin.com/pub/dir/" + firstName + "/" + lastName + "/fr-0-France"
 
   def create(firstName: String, lastName: String, url: String, content: String): Option[LinkedinSearch] = {
     val profile = LinkedinProfile.create(url, content)
