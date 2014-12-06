@@ -24,5 +24,9 @@ object LinkedinRelatedProfile {
   def getLink(content: String): Option[String] = getData(content)(1)
   def getName(content: String): Option[String] = getData(content)(2)
   def getHeadline(content: String): Option[String] = getData(content)(3).map(str => StringEscapeUtils.unescapeHtml4(str))
-  def getData(content: String): List[Option[String]] = HTMLMatcher.simple(content, "(?i)<a class=\"browse-map-photo\" title=\"[^\"]+\" href='[^']+'><img class=\"\" alt=\"[^\"]+\" width=\"60\" height=\"60\" src=\"([^\"]+)\"></a><h4><a href=\"([^\"]+)\">([^<]+)</a></h4><p class=\"browse-map-title\">([^<]+)</p>")
+  def getData(content: String): List[Option[String]] =
+    HTMLMatcher.simple(content,
+      "(?i)<a class=\"browse-map-photo\" title=\"[^\"]+\" href='[^']+'><img class=\"\" alt=\"[^\"]+\" width=\"60\" height=\"60\" src=\"([^\"]+)\"></a>" +
+        "<h4><a href=\"([^\"]+)\">([^<]+)</a></h4>" +
+        "<p class=\"browse-map-title\">([^<]*)</p>")
 }
