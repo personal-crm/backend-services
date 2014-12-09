@@ -25,10 +25,16 @@ object Scrapers extends Controller with MongoController {
     }
   }
 
-  def relatedProfiles(startUrl: String, maxProfiles: Option[Int]) = Action.async {
+  def relatedProfilesGet(startUrl: String, maxProfiles: Option[Int]) = Action.async {
+    relatedProfiles(startUrl, None, maxProfiles)
+  }
+  def relatedProfilesPost(startUrl: String, maxProfiles: Option[Int]) = Action.async(parse.json) { request =>
+    relatedProfiles(startUrl, (request.body \ "ignore").asOpt[List[String]], maxProfiles)
+  }
+  private def relatedProfiles(startUrl: String, ignoreUrls: Option[List[String]], maxProfiles: Option[Int]) = {
     val max = maxProfiles.getOrElse(1)
     val startTime = new Date().getTime()
-    ProfileScraper.scrape(Map(), List(startUrl), if (max > AppCfg.maxScrapedProfilesAtOnce) AppCfg.maxScrapedProfilesAtOnce else max).map {
+    ProfileScraper.scrape(List(), List(startUrl), ignoreUrls.getOrElse(List()), List(), if (max > AppCfg.maxScrapedProfilesAtOnce) AppCfg.maxScrapedProfilesAtOnce else max).map {
       case (scraped, toScrape) =>
         Ok(Json.obj(
           "status" -> 200,
@@ -36,19 +42,20 @@ object Scrapers extends Controller with MongoController {
           "data" -> Json.obj(
             "nbScraped" -> scraped.size,
             "nbToScrape" -> toScrape.size,
-            "scraped" -> scraped.map(_._2).toList,
+            "scraped" -> scraped,
             "toScrape" -> toScrape)))
     }
   }
 
-  def searchProfile(firstName: String, lastName: String, onlyFrance: Option[Boolean]) = Action.async {
+  def searchProfile(firstName: String, lastName: String, onlyFrance: Option[Boolean]): Action[AnyContent] = Action.async {
     val startTime = new Date().getTime()
-    ProfileScraper.search(firstName, lastName, onlyFrance.isDefined && onlyFrance.get).map { search =>
+    val a = ProfileScraper.search(firstName, lastName, onlyFrance.isDefined && onlyFrance.get).map { search =>
       Ok(Json.obj(
         "status" -> 200,
         "execMs" -> (new Date().getTime() - startTime),
         "data" -> search))
     }
+    a
   }
 
   def debugPage(url: String) = Action.async {

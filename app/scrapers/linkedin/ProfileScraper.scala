@@ -10,21 +10,27 @@ import ExecutionContext.Implicits.global
 import play.api.libs.ws._
 import play.api.Logger
 import reactivemongo.api.DB
+import com.ning.http.client.MaxRedirectException
 
 object ProfileScraper {
-  def scrape(results: Map[String, LinkedinProfile], urlsToScrape: List[String], max: Int)(implicit db: DB): Future[(Map[String, LinkedinProfile], List[String])] = {
+  def scrape(results: List[LinkedinProfile], urlsToScrape: List[String], urlsToIgnore: List[String], alreadyScraped: List[String], max: Int)(implicit db: DB): Future[(List[LinkedinProfile], List[String])] = {
     if (results.size >= max || urlsToScrape.size == 0) {
       Future.successful((results, urlsToScrape))
     } else {
       val toScrape = urlsToScrape.take(max - results.size)
       val scrapedFuture = Future.sequence(toScrape.map { url =>
-        if (results.get(url).isDefined) Future.successful(None)
+        if (alreadyScraped.contains(url)) Future.successful(None)
         else scrapeOne(url)
-      }.map(_.map(_.map(e => (e.url, e)))))
+      })
       scrapedFuture.flatMap { scrapedOpts =>
         val scraped = scrapedOpts.flatten
-        val newUrlsToScrape = scraped.flatMap { case (url, profile) => profile.relatedProfiles.map(related => related.link) }
-        scrape(results ++ scraped, (urlsToScrape.drop(max - results.size) ++ newUrlsToScrape).distinct, max)
+        val newUrlsToScrape = scraped.flatMap { profile => profile.relatedProfiles.map(related => related.link) }
+        scrape(
+          results ++ scraped.filter(p => !urlsToIgnore.contains(p.url)),
+          (urlsToScrape.drop(max - results.size) ++ newUrlsToScrape).distinct,
+          urlsToIgnore,
+          alreadyScraped ++ scraped.map(p => p.url),
+          max)
       }
     }
   }
@@ -35,13 +41,15 @@ object ProfileScraper {
       if (profileOpt.isDefined) {
         Future.successful(profileOpt)
       } else {
-        Logger.info("FETCH: " + url)
+        Logger.info("FETCH profile: " + url)
         fetchLinkedinUrl(url).map { response =>
           val profileOpt = LinkedinProfile.create(url, response.body)
           if (profileOpt.isDefined) {
             LinkedinProfileDao.upsert(profileOpt.get)
           }
           profileOpt
+        }.recover {
+          case e: Exception => Logger.error("catched " + e.getClass().getName() + ": " + e.getMessage()); None
         }
       }
     }
@@ -49,9 +57,11 @@ object ProfileScraper {
 
   def search(firstName: String, lastName: String, onlyFrance: Boolean): Future[Option[LinkedinSearch]] = {
     val url = if (onlyFrance) LinkedinSearch.getUrlForFrance(firstName, lastName) else LinkedinSearch.getUrl(firstName, lastName)
-    Logger.info("FETCH: " + url)
+    Logger.info("FETCH search: " + url)
     fetchLinkedinUrl(url).map { response =>
       LinkedinSearch.create(firstName, lastName, url, response.body)
+    }.recover {
+      case e: Exception => Logger.error("catched " + e.getClass().getName() + ": " + e.getMessage()); None
     }
   }
 
