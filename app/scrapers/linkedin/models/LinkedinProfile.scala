@@ -56,7 +56,7 @@ object LinkedinProfile {
   def create(url: String, content: String): Option[LinkedinProfile] = {
     val id = getId(content).getOrElse("")
     if (id.length > 0) {
-      val image = getImage(content).getOrElse("https://static.licdn.com/scds/common/u/images/themes/katy/ghosts/person/ghost_person_100x100_v1.png")
+      val image = getImage(content).getOrElse("")
       val imageFull = getImageFull(content).getOrElse("")
       val firstName = getFirstName(content).getOrElse("")
       val lastName = getLastName(content).getOrElse("")
